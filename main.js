@@ -375,6 +375,7 @@ XTimerNotifcationCardProto.add = function (timerInputObj) {
    let card = this.shadowRoot.querySelector('#card')
    card.appendChild(clone.content);
    newObj.div = card.children[card.children.length - 1];
+   return id;
 };
 
 XTimerNotifcationCardProto.remove = function (id) {
@@ -493,6 +494,7 @@ const [broker, check, onLoad] = (() => {
    let interval = 0;
    let saveString = 'x-timer-save';
    let volume = 1;
+   let notifications = [];
    let check = () => {
       return [timers, onLeave];
    };
@@ -507,7 +509,9 @@ const [broker, check, onLoad] = (() => {
 
    let onLoad = () => {
       let timerString = window.localStorage.getItem(saveString);
-      if (timerString)
+      if (timerString  == null) {
+         timerString = '';
+      }
       let timerObjArray = timerString.split(';');
       //Remove last element, which is an empty string
       timerObjArray.splice(-1, 1);
