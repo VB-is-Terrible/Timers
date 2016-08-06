@@ -259,7 +259,7 @@ XTimerInputCardProto._time = function (e) {
    event.invalid = returnObj.invalid;
    event.start = returnObj.start;
    this.dispatchEvent(event);
-};
+};upport YouTube with more content than the iView player? Do
 
 XTimerInputCardProto._alarm = function (e) {
    let re = new RegExp(
@@ -375,7 +375,7 @@ XTimerNotifcationCardProto.add = function (timerInputObj) {
    let card = this.shadowRoot.querySelector('#card')
    card.appendChild(clone.content);
    newObj.div = card.children[card.children.length - 1];
-   return id;
+   return newObj.id;
 };
 
 XTimerNotifcationCardProto.remove = function (id) {
