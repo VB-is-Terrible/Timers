@@ -259,7 +259,7 @@ XTimerInputCardProto._time = function (e) {
    event.invalid = returnObj.invalid;
    event.start = returnObj.start;
    this.dispatchEvent(event);
-};upport YouTube with more content than the iView player? Do
+};
 
 XTimerInputCardProto._alarm = function (e) {
    let re = new RegExp(
@@ -413,7 +413,7 @@ XTimerNotifcationCardProto._repeat = function (idObj, e) {
    repeatEvent.originType = idObj.type;
    repeatEvent.time = idObj.time;
    this.dispatchEvent(repeatEvent);
-   this.remove(id.id);
+   this.remove(idObj.id);
 };
 
 XTimerNotifcationCardProto._dismissAll = function () {
@@ -515,7 +515,7 @@ const [broker, check, onLoad] = (() => {
       let timerObjArray = timerString.split(';');
       //Remove last element, which is an empty string
       timerObjArray.splice(-1, 1);
-
+//
       const spaceRegex = / /g;
       const voidFunc = () => {return '';};
       const timerObjRegex = /\{type:(\w*?),time:(\d*)\}/;
@@ -593,19 +593,16 @@ const [broker, check, onLoad] = (() => {
 
       onLeave();
    };
-   let timerObj = function (e, timerCard, id = -1) {
+   let timerObj = function (e, timerCard) {
       this.type = e.type;
       this.time = e.time;
       this.timerID = 0;
-      if (id === -1) {
-         this.id = timerCard.add(e);
-      }
       this.timerCard = timerCard;
-      let duration = 0;
       if (this.type === 'timer') {
          let diff = e.time - Date.now();
          this.timerID = window.setTimeout(makeSound, diff, e, this);
          console.log(diff);
+         this.id = cards[1].add()
       } else if (this.type === 'alarm') {
          let now = new Date;
          let nowNum = now.getHours() * 3600 +
@@ -613,7 +610,7 @@ const [broker, check, onLoad] = (() => {
                       now.getSeconds();
          const fullDay = 86400; // Seconds in a day
          let diff = this.time - nowNum;
-         if (diff <= 0) {
+         if (diff <= 10) {
              diff += 86400;
          }
          diff *= 1000;
@@ -654,9 +651,14 @@ const [broker, check, onLoad] = (() => {
       } else {
          result += 'time: ' + this.time.toString();
       }
+
       result += '}'
       return result;
    };
+   timerObj.prototype.reset = function () {
+
+   };
+
    let onAlarm = (e) => {
       console.log(e);
       if (!e.invalid) {
@@ -669,6 +671,7 @@ const [broker, check, onLoad] = (() => {
       console.log(e);
       if (!e.invalid) {
          let timer = new timerObj(e, cards[2]);
+      let duration = 0;
          timers.push(timer);
          onLeave();
       }
@@ -685,6 +688,7 @@ const [broker, check, onLoad] = (() => {
       onLeave();
    };
 
+      let duration = 0;
    let broker = () => {
       cards = init();
       cards[0].addEventListener('alarm', onAlarm);
@@ -709,7 +713,7 @@ document.body.querySelector('x-timernotifcationcard').addEventListener(
 document.body.querySelector('x-timernotifcationcard').addEventListener(
    'repeat', (e) => {console.log(e)}
 )
-let soundDuration = 1;
+let soundDuration = 30;
 // const [activate, deactivate] = (() => {
 //    let audio = null
 //    let timeOut = null
