@@ -602,7 +602,7 @@ const [broker, check, onLoad] = (() => {
          let diff = e.time - Date.now();
          this.timerID = window.setTimeout(makeSound, diff, e, this);
          console.log(diff);
-         this.id = cards[1].add()
+         this.id = cards[2].add(e);
       } else if (this.type === 'alarm') {
          let now = new Date;
          let nowNum = now.getHours() * 3600 +
@@ -615,6 +615,7 @@ const [broker, check, onLoad] = (() => {
          }
          diff *= 1000;
          this.timerID = window.setTimeout(makeSound, diff, e, this);
+         this.id = cards[1].add(e);
       } else {
          console.warn('err');
       }
