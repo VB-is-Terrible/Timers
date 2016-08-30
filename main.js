@@ -545,7 +545,7 @@ const [broker, check, onLoad] = (() => {
       }
    };
 
-   let makeSound = (e, that) => {
+   let makeSound = (e, activeTimerObj) => {
       console.log('Firing: ', e);
       console.log('That: ', that);
       // FIXME: Alarms are somehow duplicated on firing
@@ -561,7 +561,7 @@ const [broker, check, onLoad] = (() => {
       // have fired during the sleep all fire at once.
       // To prevent this, we only make an audio cue on timers that fire in
       // 60 secs from their supposed time
-      if (Math.abs(Date.now() - that.time) < 60000) {
+      if (Math.abs(Date.now() - activeTimerObj.time) < 60000) {
          audio.changeVol(volume);
          audio.start();
          let deactivate = () => {
@@ -572,23 +572,22 @@ const [broker, check, onLoad] = (() => {
 
 
       let index = timers.findIndex((element, index, array) => {
-         if (element.id === that.id) {
+         if (element.id === activeTimerObj.id) {
             return true;
          }
       });
+
       let timer = timers[index];
+
       cards[3].add(timer);
       if (timer.type === 'timer') {
-         that.timerCard.remove(that.id);
+         activeTimerObj.timerCard.remove(activeTimerObj.id);
          // Remove timer
          timer.timerID = 0;
          timers.splice(index, 1);
 
-      } else {
-         // Reset alarm
-         // let newTimer = new timerObj(e, that.timerCard, that.id);
-         // timers.push(newTimer);
-
+      } else if (timer.type === 'alarm') {
+         activeTimerObj.reset();
       }
 
       onLeave();
@@ -602,7 +601,7 @@ const [broker, check, onLoad] = (() => {
          let diff = e.time - Date.now();
          this.timerID = window.setTimeout(makeSound, diff, e, this);
          console.log(diff);
-         this.id = cards[2].add(e);
+         this.id = timerCard.add(e);
       } else if (this.type === 'alarm') {
          let now = new Date;
          let nowNum = now.getHours() * 3600 +
@@ -615,7 +614,7 @@ const [broker, check, onLoad] = (() => {
          }
          diff *= 1000;
          this.timerID = window.setTimeout(makeSound, diff, e, this);
-         this.id = cards[1].add(e);
+         this.id = timerCard.add(e);
       } else {
          console.warn('err');
       }
@@ -657,7 +656,27 @@ const [broker, check, onLoad] = (() => {
       return result;
    };
    timerObj.prototype.reset = function () {
+      // Currently only works on alarms
+      window.clearTimeout(this.timerID);
 
+      if (this.type === 'alarm') {
+         let now = new Date;
+         let nowNum = now.getHours() * 3600 +
+                      now.getMinutes() * 60 +
+                      now.getSeconds();
+         const fullDay = 86400; // Seconds in a day
+         let diff = this.time - nowNum;
+         if (diff <= 10) {
+             diff += 86400;
+         }
+         diff *= 1000;
+         this.timerID = window.setTimeout(makeSound, diff, e, this);
+         this.id = cards[1].add(e);
+      } else if (this.type === 'timer') {
+         console.warn('Cannot reset timers');
+      } else {
+         console.error('Invalid type of timerObj: ', this);
+      }
    };
 
    let onAlarm = (e) => {
