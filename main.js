@@ -17,7 +17,7 @@
 // Calling it with longer than 1 (one) secomd intervals allows for decresed UI
 // update speed
 
-const MaxID = 2**32 // That ES7 expontent operator
+const MaxID = Math.pow(2,32) //2**32 // That ES7 expontent operator
 
 //x-timerCard implemenation
 
@@ -547,7 +547,7 @@ const [broker, check, onLoad] = (() => {
 
    let makeSound = (e, activeTimerObj) => {
       console.log('Firing: ', e);
-      console.log('That: ', that);
+      console.log('That: ', activeTimerObj);
       // FIXME: Alarms are somehow duplicated on firing
 
       // TODO: Entering standby defers all timeouts
