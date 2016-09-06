@@ -17,7 +17,10 @@
 // Calling it with longer than 1 (one) secomd intervals allows for decresed UI
 // update speed
 
+// TODO: change shadow DOM from v0 to v1
+
 const MaxID = Math.pow(2,32) //2**32 // That ES7 expontent operator
+
 
 //x-timerCard implemenation
 
@@ -246,7 +249,8 @@ XTimerInputCardProto._time = function (e) {
       time: new Date((sec + min * 60 + hr * 3600) * 1000 + Date.now()),
       // Keeps obj type consistent with alarms
       type: 'timer',
-      invalid: false
+      invalid: false,
+      origin: (sec + min * 60 + hr * 3600)
    };
    if ((hr + min + sec) === 0) {
       returnObj.invalid = true;
@@ -399,7 +403,7 @@ XTimerNotifcationCardProto._makeEventClosure = function (fStr, idObj) {
 };
 
 XTimerNotifcationCardProto._dismiss = function (idObj, e) {
-   let dismissEvent = new CustomEvent('remove');
+   let dismissEvent = new CustomEvent('dismiss');
    dismissEvent.id = idObj.id;
    dismissEvent.originType = idObj.type;
    dismissEvent.time = idObj.time;
@@ -408,7 +412,11 @@ XTimerNotifcationCardProto._dismiss = function (idObj, e) {
 };
 
 XTimerNotifcationCardProto._repeat = function (idObj, e) {
-   let repeatEvent = new CustomEvent('remove');
+   if (idObj.type === 'timer') {
+      let repeatEvent = new CustomEvent('repeat');
+   } else if (idObj.type === 'alarm') {
+      let repeatEvent = new CustomEvent('remove');
+   }
    repeatEvent.id = idObj.id;
    repeatEvent.originType = idObj.type;
    repeatEvent.time = idObj.time;
@@ -452,6 +460,7 @@ XTimerNotifcationCardProto._timerToString = (time, type = 'timer') => {
 let XTimerNotifcationCard = document.registerElement('X-timerNotifcationCard', {
    prototype: XTimerNotifcationCardProto
 });
+
 // Start up code
 
 const randint = (lower, upper) => {
@@ -545,8 +554,7 @@ const [broker, check, onLoad] = (() => {
       }
    };
 
-   let makeSound = (e, activeTimerObj) => {
-      console.log('Firing: ', e);
+   let makeSound = (activeTimerObj) => {
       console.log('That: ', activeTimerObj);
       // FIXME: Alarms are somehow duplicated on firing
 
@@ -599,8 +607,8 @@ const [broker, check, onLoad] = (() => {
       this.timerCard = timerCard;
       if (this.type === 'timer') {
          let diff = e.time - Date.now();
-         this.timerID = window.setTimeout(makeSound, diff, e, this);
-         console.log(diff);
+         this.timerID = window.setTimeout(makeSound, diff, this);
+         //console.log(diff);
          this.id = timerCard.add(e);
       } else if (this.type === 'alarm') {
          let now = new Date;
@@ -613,7 +621,7 @@ const [broker, check, onLoad] = (() => {
              diff += 86400;
          }
          diff *= 1000;
-         this.timerID = window.setTimeout(makeSound, diff, e, this);
+         this.timerID = window.setTimeout(makeSound, diff, this);
          this.id = timerCard.add(e);
       } else {
          console.warn('err');
@@ -670,8 +678,7 @@ const [broker, check, onLoad] = (() => {
              diff += 86400;
          }
          diff *= 1000;
-         this.timerID = window.setTimeout(makeSound, diff, e, this);
-         this.id = cards[1].add(e);
+         this.timerID = window.setTimeout(makeSound, diff, this);
       } else if (this.type === 'timer') {
          console.warn('Cannot reset timers');
       } else {
