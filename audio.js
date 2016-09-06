@@ -32,6 +32,11 @@ let Audio = function () {
    this.create = null;
    this.audioNode = null
    this.vol = createVol(this.context);
+   this.status = "open";
+
+   let update = () => {
+      this.status = this.context.state;
+   }
    this.start = () => {
       if (this.audioNode !== null) {
          this.stop();
@@ -52,7 +57,15 @@ let Audio = function () {
    this.start.name = 'start';
    this.stop.name = 'stop';
    this.changeVol.name = 'changeVol';
+
+   this.close = () => {
+      if (this.context.state != "closed") {
+         this.context.close();
+      }
+   };
+
 }
+
 
 createVol.name = "createVol";
 createOsc.name = "createOsc";

@@ -309,7 +309,7 @@ XTimerInputCardProto._alarm = function (e) {
       time: sec + min * 60 + hr * 3600,
       type: 'alarm',
       invalid: false,
-      origin: time
+      origin: sec + min * 60 + hr * 3600
    };
 
    if (invalid) {
