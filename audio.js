@@ -26,7 +26,7 @@ createVol = (context) => {
    return vol;
 };
 
-
+/*
 let Audio = function () {
    this.context = new window.AudioContext();
    this.create = null;
@@ -65,9 +65,77 @@ let Audio = function () {
    };
 
 }
+*/
 
-class Audio {
-   
+//Flattened intial declaration
+AudioObj = (() => {
+
+const context = new window.AudioContext();
+let status = "open";
+let audioCount = 0;
+
+const update = (i = 0) => {
+   audioCount += i;
+   if (audioCount === 0) {
+      context.suspend();
+   } else {
+      context.resume();
+   }
 }
+
+let audio = class {
+   constructor() {
+      update(1);
+      this.audioNode = null;
+      this.vol = createVol(context);
+      this.status = "open";
+      this.closed = false;
+   }
+
+   start () {
+      if (this.closed) {
+         throw("Attempted to use closed Audio object");
+      }
+
+      if (this.audioNode !== null) {
+         this.stop();
+      }
+      this.audioNode = createOsc(this.vol, context);
+      this.vol.gain.value = volume;
+      this.audioNode.start();
+      this.status = "running";
+   }
+
+   stop () {
+      if (this.closed) {
+         throw("Attempted to use closed Audio object");
+      }
+
+      if (this.audioNode !== null) {
+         this.audioNode.stop();
+         this.audioNode = null;
+         this.context = "open";
+      }
+   }
+
+   changeVol (vol) {
+      if (this.closed) {
+         throw("Attempted to use closed Audio object");
+      }
+
+      this.vol.gain.value = vol;
+   }
+
+   close () {
+      this.closed = true;
+      this.state = "closed";
+      this.audioNode = null;
+      update(-1);
+   }
+}
+
+return audio;
+})();
+
 createVol.name = "createVol";
 createOsc.name = "createOsc";

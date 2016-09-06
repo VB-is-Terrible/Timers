@@ -592,7 +592,7 @@ const [broker, check, onLoad] = (() => {
       //       Make sure that the current time is close to the trigger time
       // Play sound
       const leeway = 60 * 1000;
-      let audio = new Audio;
+      let audio = new AudioObj;
       // 1 minute of leeway.
       // Timers are prevented from firing will sleeping,
       // and have their resoultion reduced in low power mode
