@@ -373,7 +373,7 @@ XTimerNotifcationCardProto.add = function (timerInputObj) {
       input.innerText = "0";
    }
    dismiss.addEventListener('click', this._makeEventClosure('_dismiss', newObj));
-   repeat.addEventListener('click', this._makeEventClosure('_repeat', newObj));
+   repeat.addEventListener('click', this._makeEventClosure('_contextAction', newObj));
 
    this.timers.push(newObj);
    let card = this.shadowRoot.querySelector('#card')
@@ -411,7 +411,7 @@ XTimerNotifcationCardProto._dismiss = function (idObj, e) {
    this.remove(idObj.id);
 };
 
-XTimerNotifcationCardProto._repeat = function (idObj, e) {
+XTimerNotifcationCardProto._contextAction = function (idObj, e) {
    if (idObj.type === 'timer') {
       let repeatEvent = new CustomEvent('repeat');
    } else if (idObj.type === 'alarm') {
@@ -555,8 +555,9 @@ const [broker, check, onLoad] = (() => {
    };
 
    let makeSound = function (activeTimerObj) {
-      console.log('That: ', activeTimerObj);
-      // FIXME: Alarms are somehow duplicated on firing
+      console.log('That: ', activeTimerObj, '\nTimers: ', timers);
+      // FIXME: race condition to remove timerObjs from timers[] when
+      //        multiple timeouts fire is causing LBYL problem
 
       // TODO: Entering standby defers all timeouts
       //       Make sure that the current time is close to the trigger time
@@ -593,7 +594,7 @@ const [broker, check, onLoad] = (() => {
          audio: audio
       }
 
-      notifications.add(notifcationObj);
+      notifications.push(notifcationObj);
 
       if (timer.type === 'timer') {
          activeTimerObj.timerCard.remove(activeTimerObj.id);
@@ -608,9 +609,6 @@ const [broker, check, onLoad] = (() => {
       onLeave();
    };
 
-   let onDismiss = function (e) {
-      // TODO: implement
-   }
 
 
 
@@ -702,16 +700,15 @@ const [broker, check, onLoad] = (() => {
       }
    };
 
-   let onAlarm = (e) => {
-      console.log(e);
+   let onAlarm = function (e) {
       if (!e.invalid) {
          let timer = new timerObj(e, cards[1]);
          timers.push(timer);
          onLeave();
       }
    };
-   let onTimer = (e) => {
-      console.log(e);
+
+   let onTimer = function (e) {
       if (!e.invalid) {
          let timer = new timerObj(e, cards[2]);
       let duration = 0;
@@ -719,7 +716,8 @@ const [broker, check, onLoad] = (() => {
          onLeave();
       }
    };
-   let onRemove = (e) => {
+
+   let onRemove = function (e) {
       let index = timers.findIndex((element, index, array) => {
          if (element.id === e.id) {
             return true;
@@ -731,14 +729,58 @@ const [broker, check, onLoad] = (() => {
       onLeave();
    };
 
-      let duration = 0;
+   let onDismissNotfication = function (e) {
+      let index = notifications.findIndex((element, index, array) => {
+         if (element.id === e.id) {
+            return true;
+         }
+      });
+
+      let notification = notifications[index];
+      notification.audio.stop();
+
+      notifications.splice(index, 1);
+   };
+
+   let onRemoveNotfication = function (e) {
+      // TODO: implement
+
+      let index = notifications.findIndex((element, index, array) => {
+         if (element.id === e.id) {
+            return true;
+         }
+      });
+
+      let notification = notifications[index];
+      notification.audio.stop();
+
+      notifications.splice(index, 1);
+   };
+
+   let onRepeatNotfication = function (e) {
+      // TODO: implement
+      let index = notifications.findIndex((element, index, array) => {
+         if (element.id === e.id) {
+            return true;
+         }
+      });
+
+      let notification = notifications[index];
+      notification.audio.stop();
+
+      notifications.splice(index, 1);
+   }
+
+   let duration = 0;
    let broker = () => {
       cards = init();
       cards[0].addEventListener('alarm', onAlarm);
       cards[0].addEventListener('timer', onTimer);
       cards[1].addEventListener('remove', onRemove);
       cards[2].addEventListener('remove', onRemove);
+      cards[3].addEventListener('dismiss', onDismissNotfication)
       document.body.addEventListener('unload', onLeave);
+
       interval = setInterval(() => {
          //cards[1].tick();
          cards[2].tick();
@@ -750,12 +792,7 @@ const [broker, check, onLoad] = (() => {
 
 broker();
 
-document.body.querySelector('x-timernotifcationcard').addEventListener(
-   'dismiss', (e) => {console.log(e)}
-)
-document.body.querySelector('x-timernotifcationcard').addEventListener(
-   'repeat', (e) => {console.log(e)}
-)
+
 let soundDuration = 30;
 // const [activate, deactivate] = (() => {
 //    let audio = null
