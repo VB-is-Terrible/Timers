@@ -554,7 +554,7 @@ const [broker, check, onLoad] = (() => {
       }
    };
 
-   let makeSound = (activeTimerObj) => {
+   let makeSound = function (activeTimerObj) {
       console.log('That: ', activeTimerObj);
       // FIXME: Alarms are somehow duplicated on firing
 
@@ -586,8 +586,15 @@ const [broker, check, onLoad] = (() => {
       });
 
       let timer = timers[index];
+      let id = cards[3].add(timer);
 
-      cards[3].add(timer);
+      let notifcationObj = {
+         id: id,
+         audio: audio
+      }
+
+      notifications.add(notifcationObj);
+
       if (timer.type === 'timer') {
          activeTimerObj.timerCard.remove(activeTimerObj.id);
          // Remove timer
@@ -600,11 +607,20 @@ const [broker, check, onLoad] = (() => {
 
       onLeave();
    };
+
+   let onDismiss = function (e) {
+      // TODO: implement
+   }
+
+
+
    let timerObj = function (e, timerCard) {
       this.type = e.type;
       this.time = e.time;
       this.timerID = 0;
       this.timerCard = timerCard;
+      this.origin = e.origin;
+
       if (this.type === 'timer') {
          let diff = e.time - Date.now();
          this.timerID = window.setTimeout(makeSound, diff, this);
