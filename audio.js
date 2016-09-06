@@ -1,3 +1,5 @@
+// TODO: implement API to close audio nodes
+// TODO: resume and suspend audioContexts as required
 
 let volume = .05;
 
