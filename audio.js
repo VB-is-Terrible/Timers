@@ -66,6 +66,8 @@ let Audio = function () {
 
 }
 
-
+class Audio {
+   
+}
 createVol.name = "createVol";
 createOsc.name = "createOsc";
