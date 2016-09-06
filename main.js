@@ -17,7 +17,23 @@
 // Calling it with longer than 1 (one) secomd intervals allows for decresed UI
 // update speed
 
-// TODO: change shadow DOM from v0 to v1
+// Roadmap:
+
+// Finish implementing notificationCard
+
+// Feature freeze
+
+// Change shadow DOM from v0 to v1,
+// Document functions, especially expected inputs, whether it expects
+// an event or timerObjs
+
+// Refactor to use the class syntactic sugar
+// Wrap the cards within one big element
+
+// Produce public apis to change properties of the cards
+// e.g. audio duration and volume
+// and implement appropriate backends
+
 
 const MaxID = Math.pow(2,32) //2**32 // That ES7 expontent operator
 
@@ -215,7 +231,7 @@ XTimerInputCardProto.createdCallback = function () {
    };
    timeInput.querySelector('#confirmTime').addEventListener(
       'click',
-      (e) => {this._time(e);});
+      (e) => {this._timer(e);});
    alarmInput.querySelector('#confirmAlarm').addEventListener(
       'click',
       (e) => {this._alarm(e);});
@@ -225,7 +241,7 @@ XTimerInputCardProto.createdCallback = function () {
    //this.oncreate = (obj) => {};
 };
 
-XTimerInputCardProto._time = function (e) {
+XTimerInputCardProto._timer = function (e) {
    let hrObj = this.shadowRoot.querySelector('#In1');
    let minObj = this.shadowRoot.querySelector('#In2');
    let secObj = this.shadowRoot.querySelector('#In3');
@@ -234,6 +250,7 @@ XTimerInputCardProto._time = function (e) {
    let hr = parseInt(hrObj.value);
    let min = parseInt(minObj.value);
    let sec = parseInt(secObj.value);
+
    // Blank input sanitation
    if (Number.isNaN(hr)) {
       hr  = 0;
@@ -255,13 +272,16 @@ XTimerInputCardProto._time = function (e) {
    if ((hr + min + sec) === 0) {
       returnObj.invalid = true;
    }
+
    hrObj.value = '';
    minObj.value = '';
    secObj.value = '';
+
    let event = new CustomEvent('timer', returnObj);
    event.time = returnObj.time;
    event.invalid = returnObj.invalid;
-   event.start = returnObj.start;
+   event.origin = returnObj.origin;
+
    this.dispatchEvent(event);
 };
 
@@ -277,25 +297,32 @@ XTimerInputCardProto._alarm = function (e) {
       valueStr = '00:00:00';
       invalid = true;
    }
+
    let hr = parseInt(valueStr.slice(0,2));
    let min = parseInt(valueStr.slice(3,5));
    let sec = 0;
    if (valueStr.length >= 8) {
       sec = parseInt(valueStr.slice(6,8));
    }
+
    let returnObj = {
       time: sec + min * 60 + hr * 3600,
       type: 'alarm',
-      invalid: false
+      invalid: false,
+      origin: time
    };
+
    if (invalid) {
       returnObj.invalid = true;;
    }
    this.shadowRoot.querySelector('#alarmInput').
       querySelector('input.time').value = '';
+
    let event = new CustomEvent('alarm', returnObj);
    event.time = returnObj.time;
    event.invalid = returnObj.invalid;
+   event.origin = returnObj.origin;
+
    this.dispatchEvent(event);
 };
 
@@ -304,11 +331,11 @@ let XTimerInputCard = document.registerElement('x-TimerInputCard', {
    prototype: XTimerInputCardProto
 });
 
-// X-timerNotifcationCard
+// X-timerNotificationCard
 
-let XTimerNotifcationCardProto = Object.create(HTMLElement.prototype);
+let XTimerNotificationCardProto = Object.create(HTMLElement.prototype);
 
-XTimerNotifcationCardProto.createdCallback = function () {
+XTimerNotificationCardProto.createdCallback = function () {
    let shadow = this.createShadowRoot();
    let card = document.importNode(
       document.querySelector('#templateTimerNotificationCard'),
@@ -333,7 +360,7 @@ XTimerNotifcationCardProto.createdCallback = function () {
    shadow.appendChild(card.content);
 }
 
-XTimerNotifcationCardProto.attributeChangedCallback = function (
+XTimerNotificationCardProto.attributeChangedCallback = function (
    attrName, oldValue, newValue) {
    //console.log('ChangeAttr', attrName, oldValue, newValue);
    switch (attrName) {
@@ -347,7 +374,7 @@ XTimerNotifcationCardProto.attributeChangedCallback = function (
    }
 };
 
-XTimerNotifcationCardProto.add = function (timerInputObj) {
+XTimerNotificationCardProto.add = function (timerInputObj) {
    let clone = document.importNode(
       document.querySelector('#templateTimerNotificationSpan'),
       true);
@@ -370,7 +397,7 @@ XTimerNotifcationCardProto.add = function (timerInputObj) {
    } else if (timerInputObj.type == 'timer') {
       dismiss.innerText = 'Dismiss';
       repeat.innerText = 'Repeat';
-      input.innerText = "0";
+      input.innerText = this._timerToString(timerInputObj.origin, timerInputObj.type);
    }
    dismiss.addEventListener('click', this._makeEventClosure('_dismiss', newObj));
    repeat.addEventListener('click', this._makeEventClosure('_contextAction', newObj));
@@ -382,7 +409,7 @@ XTimerNotifcationCardProto.add = function (timerInputObj) {
    return newObj.id;
 };
 
-XTimerNotifcationCardProto.remove = function (id) {
+XTimerNotificationCardProto.remove = function (id) {
    let index = this.timers.findIndex((element, index, array) => {
       if (element.id === id) {
          return true;
@@ -395,14 +422,14 @@ XTimerNotifcationCardProto.remove = function (id) {
 
 };
 
-XTimerNotifcationCardProto._makeEventClosure = function (fStr, idObj) {
+XTimerNotificationCardProto._makeEventClosure = function (fStr, idObj) {
    let returnFunc = (e) => {
       this[fStr](idObj, e);
    };
    return returnFunc;
 };
 
-XTimerNotifcationCardProto._dismiss = function (idObj, e) {
+XTimerNotificationCardProto._dismiss = function (idObj, e) {
    let dismissEvent = new CustomEvent('dismiss');
    dismissEvent.id = idObj.id;
    dismissEvent.originType = idObj.type;
@@ -411,11 +438,12 @@ XTimerNotifcationCardProto._dismiss = function (idObj, e) {
    this.remove(idObj.id);
 };
 
-XTimerNotifcationCardProto._contextAction = function (idObj, e) {
+XTimerNotificationCardProto._contextAction = function (idObj, e) {
+   let repeatEvent;
    if (idObj.type === 'timer') {
-      let repeatEvent = new CustomEvent('repeat');
+      repeatEvent = new CustomEvent('repeat');
    } else if (idObj.type === 'alarm') {
-      let repeatEvent = new CustomEvent('remove');
+      repeatEvent = new CustomEvent('remove');
    }
    repeatEvent.id = idObj.id;
    repeatEvent.originType = idObj.type;
@@ -424,7 +452,7 @@ XTimerNotifcationCardProto._contextAction = function (idObj, e) {
    this.remove(idObj.id);
 };
 
-XTimerNotifcationCardProto._dismissAll = function () {
+XTimerNotificationCardProto._dismissAll = function () {
    let e = new Event('click') //Use click
    for (let timer in this.timers) {
       if (this.timers.hasOwnProperty(timer)) {
@@ -434,7 +462,7 @@ XTimerNotifcationCardProto._dismissAll = function () {
    }
 
 }
-XTimerNotifcationCardProto._timerToString = (time, type = 'timer') => {
+XTimerNotificationCardProto._timerToString = function (time, type = 'timer') {
 
    let str = '';
    if (type === 'alarm') {
@@ -445,7 +473,7 @@ XTimerNotifcationCardProto._timerToString = (time, type = 'timer') => {
       str = strPad(hr.toString(), 2, '0') + ':' +
             strPad(min.toString(), 2, '0');
    } else if (type === 'timer') {
-      let diff = Math.floor((time - Date.now())/1000);
+      let diff = time;
       let hr = Math.floor(diff / 3600);
       let min = Math.floor(diff / 60) % 60;
       let sec = diff % 60;
@@ -454,11 +482,12 @@ XTimerNotifcationCardProto._timerToString = (time, type = 'timer') => {
             strPad(min.toString(), 2, '0') + ':' +
             strPad(sec.toString(), 2, '0');
    }
+
    return str;
 };
 
-let XTimerNotifcationCard = document.registerElement('X-timerNotifcationCard', {
-   prototype: XTimerNotifcationCardProto
+let XTimerNotificationCard = document.registerElement('X-timerNotificationCard', {
+   prototype: XTimerNotificationCardProto
 });
 
 // Start up code
@@ -485,7 +514,7 @@ const init = () => {
    cards[0] = document.createElement('x-TimerInputCard');
    cards[1] = document.createElement('x-TimerCard');
    cards[2] = document.createElement('x-TimerCard');
-   cards[3] = document.createElement('X-timerNotifcationCard');
+   cards[3] = document.createElement('X-timerNotificationCard');
    cards[1].title = 'Alarms';
    cards[2].title = 'Timers';
    cards[3].title = 'Notifications';
@@ -562,6 +591,7 @@ const [broker, check, onLoad] = (() => {
       // TODO: Entering standby defers all timeouts
       //       Make sure that the current time is close to the trigger time
       // Play sound
+      const leeway = 60 * 1000;
       let audio = new Audio;
       // 1 minute of leeway.
       // Timers are prevented from firing will sleeping,
@@ -570,13 +600,50 @@ const [broker, check, onLoad] = (() => {
       // have fired during the sleep all fire at once.
       // To prevent this, we only make an audio cue on timers that fire in
       // 60 secs from their supposed time
-      if (Math.abs(Date.now() - activeTimerObj.time) < 60000) {
+
+      let alarmCheck = (time) => {
+         let date = new Date;
+
+         let hr = Math.floor(time / 3600);
+         let min = Math.floor(time / 60) % 60;
+         let sec = time % 60;
+
+         date.setHours(hr);
+         date.setMinutes(min);
+         date.setSeconds(sec);
+
+         return Date.now() - date;
+      }
+
+      let timerCheck = (time) => {
+         return Date.now() - time;
+      }
+
+      let check;
+      if (activeTimerObj.type === 'timer') {
+         check = timerCheck(activeTimerObj.time);
+      } else {
+         check = alarmCheck(activeTimerObj.time)
+      }
+
+      if (Math.abs(check) < leeway) {
          audio.changeVol(volume);
          audio.start();
          let deactivate = () => {
+            // TODO: free audio node
             audio.stop();
          }
          window.setTimeout(deactivate, soundDuration * 1000);
+      } else {
+         let s;
+         if (activeTimerObj.type === "alarm") {
+            s += "An alarm";
+         } else {
+            s += "A timer";
+         }
+         s += " failed to fire on time";
+
+         console.log(s);
       }
 
 
@@ -589,12 +656,12 @@ const [broker, check, onLoad] = (() => {
       let timer = timers[index];
       let id = cards[3].add(timer);
 
-      let notifcationObj = {
+      let NotificationObj = {
          id: id,
          audio: audio
       }
 
-      notifications.push(notifcationObj);
+      notifications.push(NotificationObj);
 
       if (timer.type === 'timer') {
          activeTimerObj.timerCard.remove(activeTimerObj.id);
@@ -663,6 +730,9 @@ const [broker, check, onLoad] = (() => {
       return result;
    };
    timerObj.prototype.toSaveString = function () {
+      // TODO: Convert to use JSON
+      // TODO: Save origin values
+
       let result = '{';
       const endLine = ', '
       result += 'type: ' + this.type + endLine;
@@ -729,7 +799,8 @@ const [broker, check, onLoad] = (() => {
       onLeave();
    };
 
-   let onDismissNotfication = function (e) {
+   let removeNotification = function(e) {
+      // TODO: free audio node
       let index = notifications.findIndex((element, index, array) => {
          if (element.id === e.id) {
             return true;
@@ -740,35 +811,20 @@ const [broker, check, onLoad] = (() => {
       notification.audio.stop();
 
       notifications.splice(index, 1);
+   }
+
+   let onDismissNotfication = function (e) {
+      removeNotification(e);
    };
 
    let onRemoveNotfication = function (e) {
       // TODO: implement
-
-      let index = notifications.findIndex((element, index, array) => {
-         if (element.id === e.id) {
-            return true;
-         }
-      });
-
-      let notification = notifications[index];
-      notification.audio.stop();
-
-      notifications.splice(index, 1);
+      removeNotification(e);
    };
 
    let onRepeatNotfication = function (e) {
       // TODO: implement
-      let index = notifications.findIndex((element, index, array) => {
-         if (element.id === e.id) {
-            return true;
-         }
-      });
-
-      let notification = notifications[index];
-      notification.audio.stop();
-
-      notifications.splice(index, 1);
+      removeNotification(e);
    }
 
    let duration = 0;
