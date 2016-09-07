@@ -19,11 +19,18 @@
 
 // Roadmap:
 
-// Finish implementing notificationCard
+// Finish implementing notificationCard:
+//    dismiss           done
+//    dismissAll        done
+//    remove            done
+//    repeat            done
+//    saving            working on it
+//    QA                pending
+
 
 // Feature freeze
 
-// Change shadow DOM from v0 to v1,
+// Change outdated API calls to newer shinier versions
 // Document functions, especially expected inputs, whether it expects
 // an event or timerObjs
 
@@ -33,6 +40,15 @@
 // Produce public apis to change properties of the cards
 // e.g. audio duration and volume
 // and implement appropriate backends
+
+// NOTE: Delayed until firefox supports v1
+// Change shadow DOM from v0 to v1
+
+// End feature freeze
+
+// Make shinier (maybe animations?)
+
+
 
 
 const MaxID = Math.pow(2,32) //2**32 // That ES7 expontent operator
