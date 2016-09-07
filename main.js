@@ -452,8 +452,8 @@ XTimerNotificationCardProto._contextAction = function (idObj, e) {
    repeatEvent.id = idObj.id;
    repeatEvent.originType = idObj.type;
    repeatEvent.time = idObj.time;
-   this.dispatchEvent(repeatEvent);
    this.remove(idObj.id);
+   this.dispatchEvent(repeatEvent);
 };
 
 XTimerNotificationCardProto._dismissAll = function (e) {
@@ -535,13 +535,13 @@ const [broker, check, onLoad] = (() => {
    let volume = 1;
    let notifications = [];
    let check = () => {
-      let e = {
-         time: new Date(10 * 1000 + Date.now()),
-         type: 'timer',
-         invalid: false,
-         origin: 10
-      }
       for (let i = 0; i < 10; i++) {
+         let e = {
+            time: new Date(i * 1000 + Date.now()),
+            type: 'timer',
+            invalid: false,
+            origin: i
+         }
          onTimer(e);
       }
    };
@@ -829,15 +829,26 @@ const [broker, check, onLoad] = (() => {
    };
 
    let onRemoveNotfication = function (e) {
-      // TODO: implement
 
-      let notification = removeNotification(e);
       notification.timerObj.timerCard.remove(notification.timerObj.id);
+      let notification = removeNotification(e);
    };
 
    let onRepeatNotfication = function (e) {
-      // TODO: implement
-      removeNotification(e);
+      let notification = removeNotification(e);
+      let n = notification;
+
+      let time = n.timerObj.origin;
+
+      let date = new Date(time * 1000 + Date.now());
+
+      let ev = {
+         time: date,
+         origin: n.timerObj.origin,
+         invalid: n.timerObj.invalid,
+         type: n.timerObj.type
+      };
+      onTimer(ev);
    }
 
    let duration = 0;

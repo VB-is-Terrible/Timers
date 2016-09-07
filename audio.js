@@ -83,9 +83,10 @@ const update = (i = 0) => {
    }
 }
 
+update();
+
 let audio = class {
    constructor() {
-      update(1);
       this.audioNode = null;
       this.vol = createVol(context);
       this.status = "open";
@@ -100,8 +101,9 @@ let audio = class {
       if (this.audioNode !== null) {
          this.stop();
       }
-      this.audioNode = createOsc(this.vol, context);
+      update(1);
       this.vol.gain.value = volume;
+      this.audioNode = createOsc(this.vol, context);
       this.audioNode.start();
       this.status = "running";
    }
@@ -115,6 +117,7 @@ let audio = class {
          this.audioNode.stop();
          this.audioNode = null;
          this.context = "open";
+         update(-1);
       }
    }
 
@@ -130,7 +133,6 @@ let audio = class {
       this.closed = true;
       this.state = "closed";
       this.audioNode = null;
-      update(-1);
    }
 }
 
