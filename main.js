@@ -667,7 +667,8 @@ const [broker, check, onLoad] = (() => {
 
       let NotificationObj = {
          id: id,
-         audio: audio
+         audio: audio,
+         timerObj: timer
       }
 
       notifications.push(NotificationObj);
@@ -709,8 +710,8 @@ const [broker, check, onLoad] = (() => {
          let diff = this.time - nowNum;
          if (diff <= 10) {
              diff += 86400;
-         }
          diff *= 1000;
+      }
          this.timerID = window.setTimeout(makeSound, diff, this);
          this.id = timerCard.add(e);
       } else {
@@ -820,6 +821,7 @@ const [broker, check, onLoad] = (() => {
       notification.audio.stop();
 
       notifications.splice(index, 1);
+      return notification;
    }
 
    let onDismissNotfication = function (e) {
@@ -828,7 +830,9 @@ const [broker, check, onLoad] = (() => {
 
    let onRemoveNotfication = function (e) {
       // TODO: implement
-      removeNotification(e);
+
+      let notification = removeNotification(e);
+      notification.timerObj.timerCard.remove(notification.timerObj.id);
    };
 
    let onRepeatNotfication = function (e) {
@@ -843,7 +847,11 @@ const [broker, check, onLoad] = (() => {
       cards[0].addEventListener('timer', onTimer);
       cards[1].addEventListener('remove', onRemove);
       cards[2].addEventListener('remove', onRemove);
-      cards[3].addEventListener('dismiss', onDismissNotfication)
+      cards[3].addEventListener('dismiss', onDismissNotfication);
+      cards[3].addEventListener('remove', onRemoveNotfication);
+      cards[3].addEventListener('repeat', onRepeatNotfication);
+
+
       document.body.addEventListener('unload', onLeave);
 
       interval = setInterval(() => {
