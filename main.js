@@ -130,7 +130,7 @@ XTimerCardProto._createId = function (timerInputObj) {
    return [newObj, onclick];
 };
 
-XTimerCardProto.remove = function (id) {
+XTimerCardProto.remove = function (id, noEvent = false) {
    let containerObj = null;
    let location = -1;
    for (let i = 0;i < this.timers.length;i++) {
@@ -143,11 +143,14 @@ XTimerCardProto.remove = function (id) {
       console.error('Invalid id: %s', id);
    } else {
       this.shadowRoot.querySelector('#card').removeChild(containerObj.div);
-      let removeEvent = new CustomEvent('remove');
-      removeEvent.id = id;
-      this.dispatchEvent(removeEvent);
       this.timers.splice(location, 1);
       this._update();
+
+      if (noEvent === false) {
+         let removeEvent = new CustomEvent('remove');
+         removeEvent.id = id;
+         this.dispatchEvent(removeEvent);
+      }
    }
 };
 
@@ -452,15 +455,16 @@ XTimerNotificationCardProto._contextAction = function (idObj, e) {
    this.remove(idObj.id);
 };
 
-XTimerNotificationCardProto._dismissAll = function () {
-   let e = new Event('click') //Use click
-   for (let timer in this.timers) {
+XTimerNotificationCardProto._dismissAll = function (e) {
+   // TODO: bind this to be XTimerNotificationCard
+   debugger
+   for (let timer of this.timers) {
       if (this.timers.hasOwnProperty(timer)) {
          this._dismiss(timer.id);
 
       }
    }
-
+   forof
 }
 XTimerNotificationCardProto._timerToString = function (time, type = 'timer') {
 
@@ -664,7 +668,7 @@ const [broker, check, onLoad] = (() => {
       notifications.push(NotificationObj);
 
       if (timer.type === 'timer') {
-         activeTimerObj.timerCard.remove(activeTimerObj.id);
+         activeTimerObj.timerCard.remove(activeTimerObj.id, true);
          // Remove timer
          timer.timerID = 0;
          timers.splice(index, 1);
