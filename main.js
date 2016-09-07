@@ -347,7 +347,7 @@ XTimerNotificationCardProto.createdCallback = function () {
    title.innerText = 'Hello World';
    this.hidable = true;
    card.content.querySelector('#Dismiss').addEventListener('click',
-                                                      this._dismissAll);
+                                          (e) => {this._dismissAll(e);});
    this.setAttributeNode(document.createAttribute('title'));
    this.setAttributeNode(document.createAttribute('hidable'));
    this.setAttributeNode(document.createAttribute('timers'));
@@ -437,8 +437,9 @@ XTimerNotificationCardProto._dismiss = function (idObj, e) {
    dismissEvent.id = idObj.id;
    dismissEvent.originType = idObj.type;
    dismissEvent.time = idObj.time;
-   this.dispatchEvent(dismissEvent);
+
    this.remove(idObj.id);
+   this.dispatchEvent(dismissEvent);
 };
 
 XTimerNotificationCardProto._contextAction = function (idObj, e) {
@@ -456,15 +457,11 @@ XTimerNotificationCardProto._contextAction = function (idObj, e) {
 };
 
 XTimerNotificationCardProto._dismissAll = function (e) {
-   // TODO: bind this to be XTimerNotificationCard
-   debugger
-   for (let timer of this.timers) {
-      if (this.timers.hasOwnProperty(timer)) {
-         this._dismiss(timer.id);
 
-      }
+   for (let i = this.timers.length; i > 0; i--) {
+      let timer = this.timers[i - 1];
+      this._dismiss(timer, e);
    }
-   forof
 }
 XTimerNotificationCardProto._timerToString = function (time, type = 'timer') {
 
@@ -538,7 +535,15 @@ const [broker, check, onLoad] = (() => {
    let volume = 1;
    let notifications = [];
    let check = () => {
-      return [timers, onLeave];
+      let e = {
+         time: new Date(10 * 1000 + Date.now()),
+         type: 'timer',
+         invalid: false,
+         origin: 10
+      }
+      for (let i = 0; i < 10; i++) {
+         onTimer(e);
+      }
    };
    let onLeave = (e) => {
       let resultString = '';
