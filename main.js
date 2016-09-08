@@ -24,6 +24,7 @@
 //    dismissAll        done
 //    remove            done
 //    repeat            done
+//    refactor          pending
 //    saving            working on it
 //    QA                pending
 
@@ -52,6 +53,7 @@
 
 
 const MaxID = Math.pow(2,32) //2**32 // That ES7 expontent operator
+const notificationDone = false;
 
 
 //x-timerCard implemenation
@@ -553,7 +555,7 @@ const [broker, check, onLoad] = (() => {
    let check = () => {
       for (let i = 0; i < 10; i++) {
          let e = {
-            time: new Date(i * 1000 + Date.now()),
+            time: new Date((i + 100) * 1000 + Date.now()),
             type: 'timer',
             invalid: false,
             origin: i
@@ -562,50 +564,106 @@ const [broker, check, onLoad] = (() => {
       }
    };
    let onLeave = function (e) {
-      let resultString = '';
-      for (let i = 0; i < timers.length; i++) {
-         resultString += timers[i].toSaveString();
-         resultString += ';';
+
+      // disabled until notificationObj is refactored
+      let timerRepr = [];
+      let notificationRepr = [];
+
+      for (let timer of timers) {
+         timerRepr.push(timer.toSaveString());
       }
+
+      if (notificationDone) {
+         for (let notification of notifications) {
+            notificationRepr.push(notification.toSaveString());
+         }
+      }
+
+      let result = {
+         timers: timerRepr,
+         notifications: notificationRepr
+      };
+
+      let resultString = JSON.stringify(result);
+
       window.localStorage.setItem(saveString, resultString);
    };
 
    let onLoad = function () {
-      let timerString = window.localStorage.getItem(saveString);
-      if (timerString  == null) {
-         timerString = '';
+      let storageString = window.localStorage.getItem(saveString);
+      if (storageString  == null) {
+         storageString = '';
       }
-      let timerObjArray = timerString.split(';');
-      //Remove last element, which is an empty string
-      timerObjArray.splice(-1, 1);
-//
-      const spaceRegex = / /g;
-      const voidFunc = () => {return '';};
-      const timerObjRegex = /\{type:(\w*?),time:(\d*)\}/;
 
-      for (let i = 0; i < timerObjArray.length; i++) {
-         let s = timerObjArray[i].replace(spaceRegex, voidFunc);
-         let regexArray = s.match(timerObjRegex);
-         let resultObj = {
-            type: '',
-            time: null
-         };
-         resultObj.type = regexArray[1];
 
-         if (resultObj.type === 'timer') {
-            let then = new Date(parseInt(regexArray[2]));
+      let container = JSON.parse(storageString);
+      let timers = [];
+      let notifications = [];
 
-            if (then < Date.now()) {
+      let timerDateReviver = (timer) {
+         if (timer.type === 'timer') {
+            timer.time = new Date(timer.time);
+         }
+
+         timer.invalid = false;
+      }
+
+      for (let timerStr of container.timers) {
+         let timer = JSON.parse(timerStr);
+         timerDateReviver(timer);
+         timers.push(timer);
+      }
+
+      for (let notification of container.notifications) {
+         notifications.push(JSON.parse(notification));
+      }
+
+      for (let timer of timers) {
+         if (timer.type === 'timer') {
+            if (timer.time < Date.now()) {
                // TODO: Send to Notification area
             } else {
-               resultObj.time = then;
-               onTimer(resultObj);
+               onTimer(timer);
             }
+         } else if (timer.type === 'alarm') {
+            onAlarm(timer);
          } else {
-            resultObj.time = parseInt(regexArray[2]);
-            onAlarm(resultObj);
+            console.error('Invalid timer');
          }
+
+
       }
+//       let timerObjArray = timerString.split(';');
+//       //Remove last element, which is an empty string
+//       timerObjArray.splice(-1, 1);
+//
+//       const spaceRegex = / /g;
+//       const voidFunc = () => {return '';};
+//       const timerObjRegex = /\{type:(\w*?),time:(\d*)\}/;
+//
+//       for (let i = 0; i < timerObjArray.length; i++) {
+//          let s = timerObjArray[i].replace(spaceRegex, voidFunc);
+//          let regexArray = s.match(timerObjRegex);
+//          let resultObj = {
+//             type: '',
+//             time: null
+//          };
+//          resultObj.type = regexArray[1];
+//
+//          if (resultObj.type === 'timer') {
+//             let then = new Date(parseInt(regexArray[2]));
+//
+//             if (then < Date.now()) {
+//                // TODO: Send to Notification area
+//             } else {
+//                resultObj.time = then;
+//                onTimer(resultObj);
+//             }
+//          } else {
+//             resultObj.time = parseInt(regexArray[2]);
+//             onAlarm(resultObj);
+//          }
+//       }
    };
 
    let makeSound = function (activeTimerObj) {
@@ -681,6 +739,7 @@ const [broker, check, onLoad] = (() => {
       let timer = timers[index];
       let id = cards[3].add(timer);
 
+      //TODO: refactor to reduce amount of date been passed
       let NotificationObj = {
          id: id,
          audio: audio,
@@ -757,22 +816,8 @@ const [broker, check, onLoad] = (() => {
    };
 
    timerObj.prototype.toSaveString = function () {
-      // TODO: Convert to use JSON
-      // TODO: Save origin values
 
-      let result = '{';
-      const endLine = ', '
-      result += 'type: ' + this.type + endLine;
-      if (this.type === 'alarm') {
-         result += 'time: ' + this.time.toString();
-      } else if (this.type === 'timer') {
-         result += 'time: ' + this.time.getTime().toString();
-      } else {
-         result += 'time: ' + this.time.toString();
-      }
-
-      result += '}'
-      return result;
+      return JSON.stringify(this, ['type', 'time', 'origin']);
    };
 
    timerObj.prototype.reset = function () {
