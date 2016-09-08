@@ -624,6 +624,15 @@ const [broker, check, onLoad] = (() => {
          if (timer.type === 'timer') {
             if (timer.time < Date.now()) {
                // TODO: Send to Notification area
+               let pseudoTimer = {
+                  origin: timer.origin,
+                  invalid: timer.invalid;
+                  type: timer.type,
+                  time: timer.time,
+                  timerCard: null
+               };
+
+
             } else {
                onTimer(timer);
             }
@@ -757,24 +766,42 @@ const [broker, check, onLoad] = (() => {
 
 
    class Notification {
-   /* property       type           comment
+   /*
+    * property       type           comment
     * audio:         AudioObj       used to make sound via start(), stop()
     * origin:        int            Original input before processing
     * invalid:       bool           Is origin valid
     * type           str            'timer' or 'alarm'
     * timerCard      XTimerCard     XTimerCard to reference for remove
     *                               Can be null for orphans
-
+    *                               A parent must be assigned before passing
+    *                               out of XTimerNotificationCard
+    * timerID        int            id to reference object for remove context
+    *                               action
+    * id             int            id reference from XTimerNotificationCard
     */
       constructor(timerObj) {
+         /*
+         *  Input:
+         *  timerObj:
+         *     origin
+         *     invalid
+         *     type
+         *     time
+         *     timerCard - can be null
+         *     id - can be undefined if timerCard is null
+         */
          this.audio = new AudioObj;
          this.origin = timerObj.origin;
          this.invalid = timerObj.invalid;
          this.type = timerObj.type;
          this.timerCard = timerObj;
          this.time = timerObj.time;
+         this.timerID = timerObj.id;
 
          this.id = cards[3].add(this);
+         notifications.push(this);
+         onLeave();
       }
 
       beep (duration) {
