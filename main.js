@@ -624,6 +624,7 @@ const [broker, check, onLoad] = (() => {
          if (timer.type === 'timer') {
             if (timer.time < Date.now()) {
                // TODO: Send to Notification area
+
             } else {
                onTimer(timer);
             }
@@ -757,16 +758,29 @@ const [broker, check, onLoad] = (() => {
 
 
    class Notification {
-   /* property       type           comment
+   /*
+
+
+    * property       type           comment
     * audio:         AudioObj       used to make sound via start(), stop()
     * origin:        int            Original input before processing
     * invalid:       bool           Is origin valid
     * type           str            'timer' or 'alarm'
     * timerCard      XTimerCard     XTimerCard to reference for remove
     *                               Can be null for orphans
-
+    *                               A parent must be assigned before passing
+    *                               out of XTimerNotificationCard
     */
       constructor(timerObj) {
+         /*
+         * Input:
+         * timerObj:
+         *    origin
+         *    invalid
+         *    type
+         *    time
+         *    timerCard - can be null
+         */
          this.audio = new AudioObj;
          this.origin = timerObj.origin;
          this.invalid = timerObj.invalid;
