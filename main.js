@@ -561,7 +561,7 @@ const [broker, check, onLoad] = (() => {
          onTimer(e);
       }
    };
-   let onLeave = (e) => {
+   let onLeave = function (e) {
       let resultString = '';
       for (let i = 0; i < timers.length; i++) {
          resultString += timers[i].toSaveString();
@@ -570,7 +570,7 @@ const [broker, check, onLoad] = (() => {
       window.localStorage.setItem(saveString, resultString);
    };
 
-   let onLoad = () => {
+   let onLoad = function () {
       let timerString = window.localStorage.getItem(saveString);
       if (timerString  == null) {
          timerString = '';
@@ -755,6 +755,7 @@ const [broker, check, onLoad] = (() => {
       result += '}'
       return result;
    };
+
    timerObj.prototype.toSaveString = function () {
       // TODO: Convert to use JSON
       // TODO: Save origin values
@@ -773,6 +774,7 @@ const [broker, check, onLoad] = (() => {
       result += '}'
       return result;
    };
+
    timerObj.prototype.reset = function () {
       // Currently only works on alarms
       window.clearTimeout(this.timerID);
