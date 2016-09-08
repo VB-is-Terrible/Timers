@@ -555,7 +555,7 @@ const [broker, check, onLoad] = (() => {
    let check = () => {
       for (let i = 0; i < 10; i++) {
          let e = {
-            time: new Date((i + 100) * 1000 + Date.now()),
+            time: new Date((i + 0) * 1000 + Date.now()),
             type: 'timer',
             invalid: false,
             origin: i
@@ -590,6 +590,8 @@ const [broker, check, onLoad] = (() => {
    };
 
    let onLoad = function () {
+      // BUG: alarms appear to randomly fire. Check code
+
       let storageString = window.localStorage.getItem(saveString);
       if (storageString  == null) {
          storageString = '';
@@ -667,9 +669,7 @@ const [broker, check, onLoad] = (() => {
    };
 
    let makeSound = function (activeTimerObj) {
-      console.log('That: ', activeTimerObj, '\nTimers: ', timers);
-      // FIXME: race condition to remove timerObjs from timers[] when
-      //        multiple timeouts fire is causing LBYL problem
+      // console.log('That: ', activeTimerObj, '\nTimers: ', timers);
 
       //       Entering standby defers all timeouts
       //       Make sure that the current time is close to the trigger time
@@ -683,6 +683,22 @@ const [broker, check, onLoad] = (() => {
       // have fired during the sleep all fire at once.
       // To prevent this, we only make an audio cue on timers that fire in
       // 60 secs from their supposed time
+
+
+
+      let index = timers.findIndex((element, index, array) => {
+         if (element.id === activeTimerObj.id) {
+            return true;
+         }
+      });
+
+      let timer = timers[index];
+
+      let notification = new Notification(timer);
+      notification.audio.changeVol(volume);
+      notifications.push(notification);
+
+      // sound code
 
       let alarmCheck = (time) => {
          let date = new Date;
@@ -710,13 +726,8 @@ const [broker, check, onLoad] = (() => {
       }
 
       if (Math.abs(check) < leeway) {
-         audio.changeVol(volume);
-         audio.start();
-         let deactivate = () => {
-            // TODO: free audio node
-            audio.stop();
-         }
-         window.setTimeout(deactivate, soundDuration * 1000);
+         notification.audio.start();
+         notification.beep(soundDuration);
       } else {
          let s;
          if (activeTimerObj.type === "alarm") {
@@ -727,26 +738,9 @@ const [broker, check, onLoad] = (() => {
          s += " failed to fire on time";
 
          console.log(s);
+         console.warn(activeTimerObj);
       }
 
-
-      let index = timers.findIndex((element, index, array) => {
-         if (element.id === activeTimerObj.id) {
-            return true;
-         }
-      });
-
-      let timer = timers[index];
-      let id = cards[3].add(timer);
-
-      //TODO: refactor to reduce amount of date been passed
-      let NotificationObj = {
-         id: id,
-         audio: audio,
-         timerObj: timer
-      }
-
-      notifications.push(NotificationObj);
 
       if (timer.type === 'timer') {
          activeTimerObj.timerCard.remove(activeTimerObj.id, true);
