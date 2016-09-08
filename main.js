@@ -85,8 +85,8 @@ XTimerCardProto.createdCallback = function () {
    shadow.appendChild(card.content);
 
 };
-
 XTimerCardProto.attributeChangedCallback = function (
+
    attrName, oldValue, newValue) {
    //console.log('ChangeAttr', attrName, oldValue, newValue);
    switch (attrName) {
@@ -600,7 +600,7 @@ const [broker, check, onLoad] = (() => {
       let timers = [];
       let notifications = [];
 
-      let timerDateReviver = (timer) {
+      let timerDateReviver = (timer) => {
          if (timer.type === 'timer') {
             timer.time = new Date(timer.time);
          }
@@ -630,9 +630,9 @@ const [broker, check, onLoad] = (() => {
          } else {
             console.error('Invalid timer');
          }
-
-
       }
+
+
 //       let timerObjArray = timerString.split(';');
 //       //Remove last element, which is an empty string
 //       timerObjArray.splice(-1, 1);
@@ -671,7 +671,7 @@ const [broker, check, onLoad] = (() => {
       // FIXME: race condition to remove timerObjs from timers[] when
       //        multiple timeouts fire is causing LBYL problem
 
-      // TODO: Entering standby defers all timeouts
+      //       Entering standby defers all timeouts
       //       Make sure that the current time is close to the trigger time
       // Play sound
       const leeway = 60 * 1000;
@@ -762,7 +762,36 @@ const [broker, check, onLoad] = (() => {
    };
 
 
+   class Notification {
+   /* property       type           comment
+    * audio:         AudioObj       used to make sound via start(), stop()
+    * origin:        int            Original input before processing
+    * invalid:       bool           Is origin valid
+    * type           str            'timer' or 'alarm'
+    * timerCard      XTimerCard     XTimerCard to reference for remove
+    *                               Can be null for orphans
 
+    */
+      constructor(timerObj) {
+         this.audio = new AudioObj;
+         this.origin = timerObj.origin;
+         this.invalid = timerObj.invalid;
+         this.type = timerObj.type;
+         this.timerCard = timerObj;
+         this.time = timerObj.time;
+
+         this.id = cards[3].add(this);
+      }
+
+      beep (duration) {
+         let deactivate = () => {
+            this.audio.stop();
+         };
+         setTimeout(deactivate, duration * 1000);
+      }
+
+
+   }
 
    let timerObj = function (e, timerCard) {
       this.type = e.type;
@@ -784,10 +813,12 @@ const [broker, check, onLoad] = (() => {
          const fullDay = 86400; // Seconds in a day
          let diff = this.time - nowNum;
          if (diff <= 10) {
-             diff += 86400;
-         diff *= 1000;
-      }
+            diff += 86400;
+            diff *= 1000;
+         }
+
          this.timerID = window.setTimeout(makeSound, diff, this);
+
          this.id = timerCard.add(e);
       } else {
          console.warn('err');
@@ -872,8 +903,11 @@ const [broker, check, onLoad] = (() => {
       onLeave();
    };
 
+   let onInvalid = function (e) {
+      console.error('Invalid Object:', e);
+   }
+
    let removeNotification = function(e) {
-      // TODO: free audio node
       let index = notifications.findIndex((element, index, array) => {
          if (element.id === e.id) {
             return true;
@@ -893,7 +927,13 @@ const [broker, check, onLoad] = (() => {
 
    let onRemoveNotfication = function (e) {
 
-      notification.timerObj.timerCard.remove(notification.timerObj.id);
+      if (notification.timerObj.timerCard !== null) {
+         notification.timerObj.timerCard.remove(notification.timerObj.id);
+      } else {
+         console.warn('Attempted to remove notification with null timerCard')
+         onInvalid(e);
+      }
+
       let notification = removeNotification(e);
    };
 
@@ -905,13 +945,21 @@ const [broker, check, onLoad] = (() => {
 
       let date = new Date(time * 1000 + Date.now());
 
+
       let ev = {
          time: date,
          origin: n.timerObj.origin,
          invalid: n.timerObj.invalid,
          type: n.timerObj.type
       };
-      onTimer(ev);
+
+      if (ev.type === 'timer') {
+         onTimer(ev);
+      } else if (ev.type === 'alarm') {
+         onAlarm(ev);
+      } else {
+         onInvalid(ev);
+      }
    }
 
    let duration = 0;
@@ -941,25 +989,6 @@ broker();
 
 
 let soundDuration = 30;
-// const [activate, deactivate] = (() => {
-//    let audio = null
-//    let timeOut = null
-//    const activate = (e) => {
-//       if (audio != null) {
-//          window.clearTimeout(timeOut);
-//       }
-//       [audio, timeout] = setAlarm(getTime(window.mainInput.value));
-//    };
-//    const deactivate = (e) => {
-//       if (audio != null) {
-//          audio.stop();
-//       }
-//    };
-//    return [activate, deactivate];
-// })();
-//
-// window.Confirm.addEventListener('click', activate);
-// window.Stop.addEventListener('click', deactivate);
 
 
 /*! getEmPixels  | Author: Tyson Matanich (http://matanich.com), 2013 | License: MIT */
