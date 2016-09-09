@@ -24,8 +24,8 @@
 //    dismissAll        done
 //    remove            done
 //    repeat            done
-//    refactor          pending
-//    saving            working on it
+//    refactor          done
+//    saving            done
 //    QA                pending
 
 
@@ -53,7 +53,8 @@
 
 
 const MaxID = Math.pow(2,32) //2**32 // That ES7 expontent operator
-const notificationDone = false;
+const notificationDone = true;
+let soundDuration = 30;
 
 
 //x-timerCard implemenation
@@ -575,7 +576,9 @@ const [broker, check, onLoad] = (() => {
 
       if (notificationDone) {
          for (let notification of notifications) {
-            notificationRepr.push(notification.toSaveString());
+            if (notification.type === 'timer') {
+               notificationRepr.push(notification.toSaveString());
+            }
          }
       }
 
@@ -590,7 +593,6 @@ const [broker, check, onLoad] = (() => {
    };
 
    let onLoad = function () {
-      // BUG: alarms appear to randomly fire. Check code
 
       let storageString = window.localStorage.getItem(saveString);
       if (storageString  == null) {
@@ -617,13 +619,14 @@ const [broker, check, onLoad] = (() => {
       }
 
       for (let notification of container.notifications) {
-         notifications.push(JSON.parse(notification));
+         let note = JSON.parse(notification);
+         timerDateReviver(note);
+         notifications.push(note);
       }
 
       for (let timer of timers) {
          if (timer.type === 'timer') {
             if (timer.time < Date.now()) {
-               // TODO: Send to Notification area
                let pseudoTimer = {
                   origin: timer.origin,
                   invalid: timer.invalid,
@@ -632,7 +635,7 @@ const [broker, check, onLoad] = (() => {
                   timerCard: null
                };
 
-
+            new Notification(pseudoTimer);
             } else {
                onTimer(timer);
             }
@@ -643,7 +646,17 @@ const [broker, check, onLoad] = (() => {
          }
       }
 
-
+      for (let note of notifications) {
+         let pseudoAlert = {
+            origin: note.origin,
+            invalid: false,
+            type: note.type,
+            time: note.time,
+            timerCard: null,
+            id: undefined
+         }
+         new Notification(pseudoAlert);
+      }
 //       let timerObjArray = timerString.split(';');
 //       //Remove last element, which is an empty string
 //       timerObjArray.splice(-1, 1);
@@ -705,7 +718,6 @@ const [broker, check, onLoad] = (() => {
 
       let notification = new Notification(timer);
       notification.audio.changeVol(volume);
-      notifications.push(notification);
 
       // sound code
 
@@ -811,8 +823,37 @@ const [broker, check, onLoad] = (() => {
          setTimeout(deactivate, duration * 1000);
       }
 
+      remove () {
+         let index = notifications.findIndex((element, index, array) => {
+            if (element.id === this.id) {
+               return true;
+            }
+         });
 
+         this.audio.stop();
+         notifications.splice(index, 1);
+         return this;
+      }
+
+      static removeById (id) {
+         let index = notifications.findIndex((element, index, array) => {
+            if (element.id === id) {
+               return true;
+            }
+         });
+
+         let notification = notifications[index];
+
+         notification.audio.stop();
+         notifications.splice(index, 1);
+         return notification;
+      }
+
+      toSaveString () {
+         return JSON.stringify(this,['type', 'time', 'origin']);
+      }
    }
+
 
    let timerObj = function (e, timerCard) {
       this.type = e.type;
@@ -944,6 +985,7 @@ const [broker, check, onLoad] = (() => {
 
    let onDismissNotfication = function (e) {
       removeNotification(e);
+      onLeave();
    };
 
    let onRemoveNotfication = function (e) {
@@ -956,6 +998,7 @@ const [broker, check, onLoad] = (() => {
       }
 
       let notification = removeNotification(e);
+      onLeave();
    };
 
    let onRepeatNotfication = function (e) {
@@ -981,6 +1024,7 @@ const [broker, check, onLoad] = (() => {
       } else {
          onInvalid(ev);
       }
+      onLeave();
    }
 
    let duration = 0;
@@ -1009,7 +1053,6 @@ const [broker, check, onLoad] = (() => {
 broker();
 
 
-let soundDuration = 30;
 
 
 /*! getEmPixels  | Author: Tyson Matanich (http://matanich.com), 2013 | License: MIT */
