@@ -626,7 +626,7 @@ const [broker, check, onLoad] = (() => {
                // TODO: Send to Notification area
                let pseudoTimer = {
                   origin: timer.origin,
-                  invalid: timer.invalid;
+                  invalid: timer.invalid,
                   type: timer.type,
                   time: timer.time,
                   timerCard: null
@@ -835,9 +835,9 @@ const [broker, check, onLoad] = (() => {
          let diff = this.time - nowNum;
          if (diff <= 10) {
             diff += 86400;
-            diff *= 1000;
          }
 
+         diff *= 1000;
          this.timerID = window.setTimeout(makeSound, diff, this);
 
          this.id = timerCard.add(e);
