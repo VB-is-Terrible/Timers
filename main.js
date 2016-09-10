@@ -26,7 +26,7 @@
 //    repeat            done
 //    refactor          done
 //    saving            done
-//    QA                pending
+//    QA                working on it
 
 
 // Feature freeze
@@ -48,6 +48,10 @@
 // End feature freeze
 
 // Make shinier (maybe animations?)
+// Make it easier to switch between timer and alarm
+// timer to fire on time feature
+// Disable unusable buttons in XNotification card
+
 
 
 
@@ -309,8 +313,8 @@ XTimerInputCardProto._timer = function (e) {
 
 XTimerInputCardProto._alarm = function (e) {
    let re = new RegExp(
-      '(\d\d):(\d\d)' + // Base hh:mm
-      '(:\d\d)?' // Seconds :ss
+      '(\\d\\d):(\\d\\d)' + // Base hh:mm
+      '(:\\d\\d)?' // Seconds :ss
    );
    let invalid = false;
    let valueStr = this.shadowRoot.querySelector('#alarmInput').querySelector('input.time').value;
@@ -321,11 +325,11 @@ XTimerInputCardProto._alarm = function (e) {
    }
 
    let reResult = valueStr.match(re);
-   let hr = reResult[1];
-   let min = reResult[2];
-   let sec = reResult[3];
-   if (valueStr.length >= 8) {
-      sec = parseInt(valueStr.slice(6,8));
+   let hr = parseInt(reResult[1]);
+   let min = parseInt(reResult[2]);
+   let sec = 0;
+   if (reResult[3] !== undefined) {
+      sec = parseInt(reResult[3]);
    }
 
    let returnObj = {
