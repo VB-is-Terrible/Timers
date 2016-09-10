@@ -309,8 +309,8 @@ XTimerInputCardProto._timer = function (e) {
 
 XTimerInputCardProto._alarm = function (e) {
    let re = new RegExp(
-      '^\\d\\d:\\d\\d' + // Base hh:mm
-      '(?=:\\d\\d)?' // Seconds :ss
+      '(\d\d):(\d\d)' + // Base hh:mm
+      '(:\d\d)?' // Seconds :ss
    );
    let invalid = false;
    let valueStr = this.shadowRoot.querySelector('#alarmInput').querySelector('input.time').value;
@@ -320,9 +320,10 @@ XTimerInputCardProto._alarm = function (e) {
       invalid = true;
    }
 
-   let hr = parseInt(valueStr.slice(0,2));
-   let min = parseInt(valueStr.slice(3,5));
-   let sec = 0;
+   let reResult = valueStr.match(re);
+   let hr = reResult[1];
+   let min = reResult[2];
+   let sec = reResult[3];
    if (valueStr.length >= 8) {
       sec = parseInt(valueStr.slice(6,8));
    }
@@ -566,7 +567,6 @@ const [broker, check, onLoad] = (() => {
    };
    let onLeave = function (e) {
 
-      // disabled until notificationObj is refactored
       let timerRepr = [];
       let notificationRepr = [];
 
@@ -576,9 +576,7 @@ const [broker, check, onLoad] = (() => {
 
       if (notificationDone) {
          for (let notification of notifications) {
-            if (notification.type === 'timer') {
-               notificationRepr.push(notification.toSaveString());
-            }
+            notificationRepr.push(notification.toSaveString());
          }
       }
 
@@ -657,37 +655,6 @@ const [broker, check, onLoad] = (() => {
          }
          new Notification(pseudoAlert);
       }
-//       let timerObjArray = timerString.split(';');
-//       //Remove last element, which is an empty string
-//       timerObjArray.splice(-1, 1);
-//
-//       const spaceRegex = / /g;
-//       const voidFunc = () => {return '';};
-//       const timerObjRegex = /\{type:(\w*?),time:(\d*)\}/;
-//
-//       for (let i = 0; i < timerObjArray.length; i++) {
-//          let s = timerObjArray[i].replace(spaceRegex, voidFunc);
-//          let regexArray = s.match(timerObjRegex);
-//          let resultObj = {
-//             type: '',
-//             time: null
-//          };
-//          resultObj.type = regexArray[1];
-//
-//          if (resultObj.type === 'timer') {
-//             let then = new Date(parseInt(regexArray[2]));
-//
-//             if (then < Date.now()) {
-//                // TODO: Send to Notification area
-//             } else {
-//                resultObj.time = then;
-//                onTimer(resultObj);
-//             }
-//          } else {
-//             resultObj.time = parseInt(regexArray[2]);
-//             onAlarm(resultObj);
-//          }
-//       }
    };
 
    let makeSound = function (activeTimerObj) {
@@ -807,7 +774,7 @@ const [broker, check, onLoad] = (() => {
          this.origin = timerObj.origin;
          this.invalid = timerObj.invalid;
          this.type = timerObj.type;
-         this.timerCard = timerObj;
+         this.timerCard = timerObj.timerCard;
          this.time = timerObj.time;
          this.timerID = timerObj.id;
 
@@ -989,15 +956,14 @@ const [broker, check, onLoad] = (() => {
    };
 
    let onRemoveNotfication = function (e) {
+      let notification = removeNotification(e);
 
-      if (notification.timerObj.timerCard !== null) {
-         notification.timerObj.timerCard.remove(notification.timerObj.id);
+      if (notification.timerCard !== null) {
+         notification.timerCard.remove(notification.timerID);
       } else {
          console.warn('Attempted to remove notification with null timerCard')
-         onInvalid(e);
       }
 
-      let notification = removeNotification(e);
       onLeave();
    };
 
