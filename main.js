@@ -1,7 +1,7 @@
 'use strict'
 
-// Implements x-timerCard, x-timerInputCard
-// via XTimerCardProto, x-timerInputCard
+// Implements x-timerCard, x-timerInputCard, x-timerNotificationCard,
+// via XTimerCardProto, XtimerInputCard, XTimerNotificationCard
 
 // For timerObjs, if type === 'timer',
 // time is Date object at the time the timer ends
@@ -546,7 +546,6 @@ const init = () => {
    for (let i = 0;i < cards.length;i++) {
       window.pseudoBody.appendChild(cards[i]);
    }
-   //cards[0].oncreate = (obj) => {console.log(obj);}
 
    return cards;
 }
@@ -556,7 +555,7 @@ const [broker, check, onLoad] = (() => {
    let timers = [];
    let interval = 0;
    let saveString = 'x-timer-save';
-   let volume = 1;
+   let volume = .5;
    let notifications = [];
    let check = () => {
       for (let i = 0; i < 10; i++) {
@@ -975,16 +974,16 @@ const [broker, check, onLoad] = (() => {
       let notification = removeNotification(e);
       let n = notification;
 
-      let time = n.timerObj.origin;
+      let time = n.origin;
 
       let date = new Date(time * 1000 + Date.now());
 
 
       let ev = {
          time: date,
-         origin: n.timerObj.origin,
-         invalid: n.timerObj.invalid,
-         type: n.timerObj.type
+         origin: n.origin,
+         invalid: n.invalid,
+         type: n.type
       };
 
       if (ev.type === 'timer') {
