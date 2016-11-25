@@ -130,18 +130,30 @@
          </div>
       </template>
 
+      <template id="templateTimerBody">
+         <style>
+         #pseudoBody {
+            min-width: 300px;
+            padding-left: 15px;
+            display: inline-block;
+         }
+         </style>
+         <div id="pseudoBody">
+            <x-timerInputCard>
+            </x-timerInputCard>
+            <x-TimerCard>
+            </x-TimerCard>
+            <x-TimerCard>
+            </x-TimerCard>
+            <x-timerNotificationCard>
+            </x-timerNotificationCard>
+         </div>
+      </template>
 
-      <style>
-      #pseudoBody {
-         min-width: 300px;
-         padding-left: 15px;
-         display: inline-block;
-      }
-      </style>
    </head>
    <body>
-      <div id="pseudoBody">
-      </div>
+      <x-timerBody>
+      </x-timerBody>
       <script src="main.js"></script>
    </body>
 </html>

@@ -59,7 +59,208 @@
 const MaxID = Math.pow(2,32) //2**32 // That ES7 expontent operator
 const notificationDone = true;
 let soundDuration = 30;
+let volume = .05;
 
+//x-timerBody implemenation
+
+let XTimerBodyProto = Object.create(HTMLElement.prototype);
+
+XTimerBodyProto.createdCallback = function () {
+   let shadow = this.createShadowRoot();
+   let card = document.importNode(
+      document.querySelector('#templateTimerBody'),
+      true);
+
+   shadow.appendChild(card.content);
+
+   Object.defineProperty(this, 'cards', {
+      value: this.getCards(),
+      writable: false,
+      enumerable: true,
+      configurable: false
+   });
+
+   this.cards[1].title = 'Alarms';
+   this.cards[2].title = 'Timers';
+   this.cards[3].title = 'Notifications';
+
+
+   Object.defineProperty(this, 'timers', {
+      value: [],
+      writable: false,
+      enumerable: true,
+      configurable: false
+   });
+
+   Object.defineProperty(this, 'notifications', {
+      value: [],
+      writable: false,
+      enumerable: true,
+      configurable: false
+   });
+
+   Object.defineProperty(this,'saveString', {
+      value: 'x-timer-save',
+      writable: true,
+      enumerable: true,
+      configurable: false
+   });
+
+   Object.defineProperty(this,'volume', {
+      value: .5,
+      writable: true,
+      enumerable: true,
+      configurable: false
+   });
+
+   // Function declarations
+
+
+   this.cards[0].addEventListener('alarm', onAlarm);
+   this.cards[0].addEventListener('timer', onTimer);
+   this.cards[1].addEventListener('remove', onRemove);
+   this.cards[2].addEventListener('remove', onRemove);
+   this.cards[3].addEventListener('dismiss', onDismissNotfication);
+   this.cards[3].addEventListener('remove', onRemoveNotfication);
+   this.cards[3].addEventListener('repeat', onRepeatNotfication);
+
+
+}
+
+XTimerBodyProto.getCards = function() {
+   return this.shadowRoot.querySelector('#pseudoBody').children;
+}
+
+XTimerBodyProto.onLeave = function (e) {
+
+   let timerRepr = [];
+   let notificationRepr = [];
+
+   for (let timer of this.timers) {
+      timerRepr.push(timer.toSaveString());
+   }
+
+   if (notificationDone) {
+      for (let notification of this.notifications) {
+         notificationRepr.push(notification.toSaveString());
+      }
+   }
+
+   let result = {
+      timers: timerRepr,
+      notifications: notificationRepr
+   };
+
+   let resultString = JSON.stringify(result);
+
+   window.localStorage.setItem(this.saveString, resultString);
+};
+
+XTimerBodyProto.onLoad = function () {
+
+   let storageString = window.localStorage.getItem(this.saveString);
+   if (storageString  == null) {
+      storageString = '';
+   }
+
+
+   let container = JSON.parse(storageString);
+   let timers = [];
+   let notifications = [];
+
+   let timerDateReviver = (timer) => {
+      if (timer.type === 'timer') {
+         timer.time = new Date(timer.time);
+      }
+
+      timer.invalid = false;
+   }
+
+   for (let timerStr of container.timers) {
+      let timer = JSON.parse(timerStr);
+      timerDateReviver(timer);
+      timers.push(timer);
+   }
+
+   for (let notification of container.notifications) {
+      let note = JSON.parse(notification);
+      timerDateReviver(note);
+      notifications.push(note);
+   }
+
+   for (let timer of timers) {
+      if (timer.type === 'timer') {
+         if (timer.time < Date.now()) {
+            let pseudoTimer = {
+               origin: timer.origin,
+               invalid: timer.invalid,
+               type: timer.type,
+               time: timer.time,
+               timerCard: null
+            };
+
+         new this.Notification(pseudoTimer);
+         } else {
+            this.onTimer(timer);
+         }
+      } else if (timer.type === 'alarm') {
+         this.onAlarm(timer);
+      } else {
+         console.error('Invalid timer');
+      }
+   }
+
+   for (let note of notifications) {
+      let pseudoAlert = {
+         origin: note.origin,
+         invalid: false,
+         type: note.type,
+         time: note.time,
+         timerCard: null,
+         id: undefined
+      }
+      new this.Notification(pseudoAlert);
+   }
+};
+
+XTimerBodyProto.onAlarm = function (e) {
+   if (!e.invalid) {
+      let timer = new timerObj(e, this.cards[1]);
+      this.timers.push(timer);
+      onLeave();
+   }
+};
+
+XTimerBodyProto.onTimer = function (e) {
+   if (!e.invalid) {
+      let timer = new timerObj(e, cards[2]);
+   let duration = 0;
+      timers.push(timer);
+      onLeave();
+   }
+};
+
+XTimerBodyProto.onRemove = function (e) {
+   let index = this.timers.findIndex((element, index, array) => {
+      if (element.id === e.id) {
+         return true;
+      }
+   });
+
+   let timer = this.timers[index];
+   window.clearTimeout(timer.timerID);
+   this.timers.splice(index, 1);
+   onLeave();
+};
+
+XTimerBodyProto.onInvalid = function (e) {
+   console.error('Invalid Object:', e);
+}
+
+
+let XTimerCard = document.registerElement('x-timerBody', {
+    prototype: XTimerBodyProto
+});
 
 //x-timerCard implemenation
 
@@ -216,7 +417,7 @@ XTimerCardProto.tick = function () {
 };
 
 
-let XTimerCard = document.registerElement('x-TimerCard', {
+let XTimerBody = document.registerElement('x-TimerCard', {
     prototype: XTimerCardProto
 });
 
@@ -668,6 +869,7 @@ const [broker, check, onLoad] = (() => {
       // Play sound
       const leeway = 60 * 1000;
       let audio = new AudioObj;
+      audio.changeVol(volume);
       // 1 minute of leeway.
       // Timers are prevented from firing will sleeping,
       // and have their resoultion reduced in low power mode
@@ -701,8 +903,8 @@ const [broker, check, onLoad] = (() => {
          date.setHours(hr);
          date.setMinutes(min);
          date.setSeconds(sec);
-
          return Date.now() - date;
+
       }
 
       let timerCheck = (time) => {
