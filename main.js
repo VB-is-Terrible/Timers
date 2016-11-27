@@ -444,7 +444,7 @@ XTimerNotificationCardProto.createdCallback = function () {
    title.innerText = this.title;
    this.previous = 0;
    shadow.appendChild(card.content);
-}
+};
 
 XTimerNotificationCardProto.attributeChangedCallback = function (
    attrName, oldValue, newValue) {
@@ -545,7 +545,8 @@ XTimerNotificationCardProto._dismissAll = function (e) {
       let timer = this.timers[i - 1];
       this._dismiss(timer, e);
    }
-}
+};
+
 XTimerNotificationCardProto._timerToString = function (time, type = 'timer') {
 
    let str = '';
@@ -661,30 +662,26 @@ XTimerBodyProto.createdCallback = function () {
       configurable: false,
    });
 
+   this.initFunc();
    // Public 'values' (attributeChangedCallback didn't work for me)
    Object.defineProperty(this,'volume', {
       enumerable: true,
-      configurable: true,
+      configurable: false,
       set: this._changeVol,
       get: () => {return this._vol;}
    });
 
    Object.defineProperty(this, 'interval', {
       enumerable: true,
-      configurable: true,
-      set: (e) => {
-         clearInterval(this._intervalID);
-         this._interval = e;
-         this._intervalID = setInterval(this.check, e);
-      },
+      configurable: false,
+      set: this._onIntervalChange,
       get: () => {return this._interval;}
    });
 
 
-   // Function declarations
-   this.initFunc();
    this.initTimerFunc();
    this.initNotification();
+   this.interval = 1000;
 
    this.cards[0].addEventListener('alarm',   this.onAlarm);
    this.cards[0].addEventListener('timer',   this.onTimer);
@@ -694,10 +691,7 @@ XTimerBodyProto.createdCallback = function () {
    this.cards[3].addEventListener('remove',  this.onRemoveNotfication);
    this.cards[3].addEventListener('repeat',  this.onRepeatNotfication);
 
-   this._interval = 1000;
-   this._intervalID = setInterval(this.check, this._interval);
-
-}
+};
 
 XTimerBodyProto.attributeChangedCallback = function (attrName, oldValue, newValue) {
    console.log('BodyAttrChange', attrName, oldValue, newValue);
@@ -711,7 +705,8 @@ XTimerBodyProto.attributeChangedCallback = function (attrName, oldValue, newValu
       case 'duration':
 
    }
-}
+};
+
 XTimerBodyProto.initCards = function() {
    let cards = [null, null, null, null];
    cards[0] = document.createElement('x-TimerInputCard');
@@ -727,11 +722,11 @@ XTimerBodyProto.initCards = function() {
       pseudoBody.appendChild(cards[i]);
    }
    return cards;
-}
+};
 
 XTimerBodyProto.initFunc = function () {
    // Achieves proper binding of this value
-
+   // Because these are fired from events, they need their this value to be properly binded
    this.onAlarm = function (e) {
       if (!e.invalid) {
          let timer = new this.timerObj(e, this.cards[1]);
@@ -836,15 +831,18 @@ XTimerBodyProto.initFunc = function () {
          this.onInvalid(ev);
       }
       this.onLeave();
-   }
+   };
+
    this.load = () => {
       this.onLoad();
-   }
+   };
 
    this.check = () => {
       //this.cards[1].tick();
       this.cards[2].tick();
-   }
+   };
+
+
 }
 
 
@@ -1029,7 +1027,7 @@ XTimerBodyProto.onRepeatNotfication = function (e) {
       this.onInvalid(ev);
    }
    this.onLeave();
-}
+};
 
 XTimerBodyProto._changeVol = function (vol) {
    let _vol = parseFloat(vol);
@@ -1037,7 +1035,15 @@ XTimerBodyProto._changeVol = function (vol) {
       note.changeVol(vol);
    }
    this._vol = _vol;
-}
+};
+
+XTimerBodyProto._onIntervalChange = function (e) {
+   clearInterval(this._intervalID);
+   this._interval = e;
+   this._intervalID = setInterval(this.check, e);
+};
+
+// Object declarations
 
 XTimerBodyProto.initTimerFunc = function () {
    let bindedThis = this;
@@ -1308,6 +1314,7 @@ let XTimerBody = document.registerElement('x-timerBody', {
 // Load stuff
 document.querySelector('#timers').load();
 document.querySelector('#timers').duration = 30;
+document.querySelector('#timers').interval = 5000;
 
 
 // Old stuff
