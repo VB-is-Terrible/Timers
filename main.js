@@ -727,11 +727,11 @@ XTimerBodyProto.initCards = function() {
 XTimerBodyProto.initFunc = function () {
    // Achieves proper binding of this value
    // Because these are fired from events, they need their this value to be properly binded
-   this.onAlarm = function (e) {
+   this.onAlarm = (e) => {
       if (!e.invalid) {
          let timer = new this.timerObj(e, this.cards[1]);
          this.timers.push(timer);
-         rhis.onLeave();
+         this.onLeave();
       }
    };
 
