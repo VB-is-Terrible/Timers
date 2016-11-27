@@ -93,18 +93,13 @@ XTimerCardProto.createdCallback = function () {
    let title = card.content.querySelector('#title');
 
    //Prevents race condition when object was made before definition
+
    let titletext = 'Error: title not set';
    if (this.title !== undefined && this.title !== "") {
       titletext = this.title;
    }
+   this.setAttribute('title', titletext);
 
-   this.setAttributeNode()
-   Object.defineProperty(this, 'title', {
-      value: titletext,
-      writable: true,
-      enumerable: true,
-      configurable: false
-   });
 
    Object.defineProperty(this, 'hidable', {
       value: false,
@@ -429,12 +424,7 @@ XTimerNotificationCardProto.createdCallback = function () {
    }
 
 
-   Object.defineProperty(this, 'title', {
-      value: titletext,
-      writable: true,
-      enumerable: true,
-      configurable: false
-   });
+   this.setAttribute('title', titletext);
 
    Object.defineProperty(this, 'hidable', {
       value: false,
@@ -630,7 +620,6 @@ XTimerBodyProto.createdCallback = function () {
    }
 
    let mutableValues = [{name: 'saveString', value: 'x-timer-save'},
-                        {name: 'volume', value: .5},
                         {name: 'duration', value: 5}]
 
    for (let defaultValue of mutableValues) {
@@ -645,9 +634,51 @@ XTimerBodyProto.createdCallback = function () {
          value: temp,
          writable: true,
          enumerable: true,
-         configurable: false
+         configurable: false,
       });
    }
+
+   // Internal property reflection
+
+   Object.defineProperty(this, '_vol', {
+      value: .5,
+      writable: true,
+      enumerable: false,
+      configurable: false,
+   });
+
+   Object.defineProperty(this, '_interval', {
+      value: -1,
+      writable: true,
+      enumerable: false,
+      configurable: false,
+   });
+
+   Object.defineProperty(this, '_intervalID', {
+      value: -1,
+      writable: true,
+      enumerable: false,
+      configurable: false,
+   });
+
+   // Public 'values' (attributeChangedCallback didn't work for me)
+   Object.defineProperty(this,'volume', {
+      enumerable: true,
+      configurable: true,
+      set: this._changeVol,
+      get: () => {return this._vol;}
+   });
+
+   Object.defineProperty(this, 'interval', {
+      enumerable: true,
+      configurable: true,
+      set: (e) => {
+         clearInterval(this._intervalID);
+         this._interval = e;
+         this._intervalID = setInterval(this.check, e);
+      },
+      get: () => {return this._interval;}
+   });
 
 
    // Function declarations
@@ -663,11 +694,23 @@ XTimerBodyProto.createdCallback = function () {
    this.cards[3].addEventListener('remove',  this.onRemoveNotfication);
    this.cards[3].addEventListener('repeat',  this.onRepeatNotfication);
 
-   this.onLoad();
+   this._interval = 1000;
+   this._intervalID = setInterval(this.check, this._interval);
+
 }
 
 XTimerBodyProto.attributeChangedCallback = function (attrName, oldValue, newValue) {
    console.log('BodyAttrChange', attrName, oldValue, newValue);
+   switch (attrName) {
+      case 'volume':
+         let vol = parseFloat(newValue);
+         for (let note of this.notifications) {
+            note.changeVol(vol);
+         }
+         break;
+      case 'duration':
+
+   }
 }
 XTimerBodyProto.initCards = function() {
    let cards = [null, null, null, null];
@@ -794,6 +837,14 @@ XTimerBodyProto.initFunc = function () {
       }
       this.onLeave();
    }
+   this.load = () => {
+      this.onLoad();
+   }
+
+   this.check = () => {
+      //this.cards[1].tick();
+      this.cards[2].tick();
+   }
 }
 
 
@@ -826,7 +877,7 @@ XTimerBodyProto.onLoad = function () {
 
    let storageString = window.localStorage.getItem(this.saveString);
    if (storageString  == null) {
-      storageString = '';
+      storageString = '{"timers":[],"notifications":[]}';
    }
 
 
@@ -980,6 +1031,13 @@ XTimerBodyProto.onRepeatNotfication = function (e) {
    this.onLeave();
 }
 
+XTimerBodyProto._changeVol = function (vol) {
+   let _vol = parseFloat(vol);
+   for (let note of this.notifications) {
+      note.changeVol(vol);
+   }
+   this._vol = _vol;
+}
 
 XTimerBodyProto.initTimerFunc = function () {
    let bindedThis = this;
@@ -1040,7 +1098,7 @@ XTimerBodyProto.initTimerFunc = function () {
 
       if (Math.abs(check) < leeway) {
          notification.audio.start();
-         notification.beep(bindedThis.duration);
+         notification.beep(parseInt(bindedThis.duration));
       } else {
          let s;
          if (activeTimerObj.type === "alarm") {
@@ -1234,6 +1292,10 @@ XTimerBodyProto.initNotification = function () {
       toSaveString () {
          return JSON.stringify(this,['type', 'time', 'origin']);
       }
+
+      changeVol (vol) {
+         this.audio.changeVol(vol);
+      }
    }
    this.Notification = Notification;
 }
@@ -1243,7 +1305,9 @@ let XTimerBody = document.registerElement('x-timerBody', {
     prototype: XTimerBodyProto
 });
 
-
+// Load stuff
+document.querySelector('#timers').load();
+document.querySelector('#timers').duration = 30;
 
 
 // Old stuff
@@ -1736,40 +1800,3 @@ let XTimerBody = document.registerElement('x-timerBody', {
 //
 // //broker();
 //
-
-
-
-/*! getEmPixels  | Author: Tyson Matanich (http://matanich.com), 2013 | License: MIT */
-// Modified to use take advantage of ES6 and to improve readability
-// https://github.com/tysonmatanich/getEmPixels
-const getEmPixels = (element) => {
-
-   const style = 'position:absolute !important;'
-              + 'visibility:hidden !important;'
-              + 'width:1em !important;'
-              + 'font-size:1em !important;'
-              + 'padding:0 !important; ';
-
-   /* Since we use Custom Elements and ES6, which requires Chrome >= 45,
-      We don't need IE6-7 compatibility
-   */
-   if (element === undefined) {
-      element = document.documentElement;
-   }
-
-   // Create and style a test element
-   let testElement = document.createElement('i');
-   testElement.style.cssText = style;
-   element.appendChild(testElement);
-
-   // Get the client width of the test element
-   let value = testElement.clientWidth;
-
-   // Remove the test element
-   element.removeChild(testElement);
-
-   // Return the em value in pixels
-   return value;
-};
-
-const standardEm = getEmPixels();
