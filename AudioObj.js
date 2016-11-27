@@ -21,7 +21,7 @@ const createVol = (volume = 0) => {
 
 const createOsc = (gainNode, freq = defaultFreq) => {
    let osc = context.createOscillator();
-   osc.type = 'sine'
+   osc.type = 'square'
    osc.frequency.value = freq;
    osc.connect(gainNode)
    return osc;
