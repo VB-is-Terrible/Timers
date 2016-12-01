@@ -125,7 +125,7 @@ XTimerCardProto.createdCallback = function () {
 
 XTimerCardProto.attributeChangedCallback = function (
    attrName, oldValue, newValue) {
-   console.log('ChangeAttr', attrName, oldValue, newValue);
+   //console.log('ChangeAttr', attrName, oldValue, newValue);
    switch (attrName) {
       case 'title':
          this.shadowRoot.querySelector('#title').innerText = newValue;
@@ -293,6 +293,21 @@ XTimerInputCardProto.createdCallback = function () {
    alarmInput.querySelector('#confirmAlarm').addEventListener(
       'click',
       (e) => {this._alarm(e);});
+   timeInput.addEventListener(
+      'keypress',
+      (e) => {
+         if (e.key == 'Enter') {
+            this._timer(e);
+         }
+      });
+   alarmInput.addEventListener(
+      'keypress',
+      (e) => {
+         if (e.key == 'Enter') {
+            this._alarm(e);
+         }
+      });
+
    selector.addEventListener('change', onselect);
    shadow.appendChild(card.content);
    //this.setAttributeNode(document.createAttribute('oncreate'));
@@ -398,7 +413,8 @@ XTimerInputCardProto.test = function () {
    for (let event of events) {
       this.dispatchEvent(event);
    }
-}
+};
+
 let XTimerInputCard = document.registerElement('x-TimerInputCard', {
    prototype: XTimerInputCardProto
 });
@@ -448,7 +464,7 @@ XTimerNotificationCardProto.createdCallback = function () {
 
 XTimerNotificationCardProto.attributeChangedCallback = function (
    attrName, oldValue, newValue) {
-   console.log('ChangeAttr', attrName, oldValue, newValue);
+   //console.log('ChangeAttr', attrName, oldValue, newValue);
    switch (attrName) {
       case 'title':
          this.shadowRoot.querySelector('#title').innerText = newValue;
@@ -1043,6 +1059,9 @@ XTimerBodyProto._onIntervalChange = function (e) {
    this._intervalID = setInterval(this.check, e);
 };
 
+XTimerBodyProto.test = function () {
+   this.cards[0].test()
+}
 // Object declarations
 
 XTimerBodyProto.initTimerFunc = function () {
